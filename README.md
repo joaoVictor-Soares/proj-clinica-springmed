@@ -71,7 +71,7 @@ alguns destes itens.
 | Tela | Funcionalidade | Navega para |
 |---|---|---|
 | Splash | Alertar abertura do aplicativo | Login |
-| Login | Direcionar médicos e clientes ao seu próprio perfil | Login |
+| Login | Direcionar médicos e clientes ao seu próprio perfil | Menu |
 | Menu | [a preencher] | Médicos, Pacientes, Consultas |
 | Médicos (listagem) | [a preencher] | Cadastro/Edição de Médico |
 | Cadastro/Edição de Médico | [a preencher] | — |
