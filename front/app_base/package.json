@@ -6,7 +6,9 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "mock-api": "npx json-server --watch mockup/db.json --port 3000"
+
   },
   "dependencies": {
     "@react-native-picker/picker": "2.11.1",
