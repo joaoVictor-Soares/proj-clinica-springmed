@@ -10,6 +10,7 @@ import MenuScreen from './src/screens/Menu/MenuScreen';
 import Medico from './src/screens/Medico/Medico';
 import Paciente from './src/screens/Paciente/Paciente';
 import CadastroEdicaoMedicoScreen from './src/screens/Medico/CadastroEdicaoMedicoScreen';
+import PacienteForm from './src/components/PacienteForm';
 
 const Stack = createStackNavigator();
 
@@ -40,6 +41,11 @@ function App() {
         <Stack.Screen name="Medicos" component={MedicoList} options={{ title: 'Médico(a)s' }} />
         {/* ROTA DE PACIENTES ATIVADA ABAIXO */}
         <Stack.Screen name="Pacientes" component={Paciente} options={{ title: 'Pacientes' }} />
+        <Stack.Screen 
+          name="PacienteForm" 
+          component={PacienteForm} 
+          options={{ title: 'Formulário do Paciente' }}
+        />
         
         <Stack.Screen name="MedicoForm" component={CadastroEdicaoMedicoScreen} options={{ title: 'Gerenciar Médico' }} />
         

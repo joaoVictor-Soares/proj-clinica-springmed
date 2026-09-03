@@ -1,18 +1,7 @@
 {
-  "name": "front",
-  "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web"
-  },
   "dependencies": {
-    "expo": "~54.0.35",
-    "expo-status-bar": "~3.0.9",
-    "react": "19.1.0",
-    "react-native": "0.81.5"
-  },
-  "private": true
+    "@react-navigation/native-stack": "^7.18.10",
+    "react-native-safe-area-context": "^5.9.1",
+    "react-native-screens": "^4.27.0"
+  }
 }

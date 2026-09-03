@@ -1,6 +1,6 @@
 // src/screens/Paciente/Op1Screen.js
+import React, { useState, useMemo, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -13,13 +13,14 @@ import {
   UIManager,
   Button,
   Image,
-  ActivityIndicator
+  ActivityIndicator,
+  Alert
 } from 'react-native';
 
 const IconeLupa = require('../../../assets/lupa.png');
 const IconeSeta = require('../../../assets/seta.png');
 
-const BASE_URL = 'http://10.110.12.44:3000';
+const BASE_URL = 'http://192.168.1.11:3000';
 
 if (Platform.OS === 'android') {
   if (UIManager.setLayoutAnimationEnabledExperimental) {
@@ -27,9 +28,7 @@ if (Platform.OS === 'android') {
   }
 }
 
-// =========================================================================
-// FUNÇÃO AUXILIAR PARA AGRUPAR E FILTRAR OS PACIENTES
-// =========================================================================
+// FUNÇÃO AUXILIAR
 const groupAndFilterPacientes = (pacientes, searchText) => {
   if (!pacientes) return [];
 
@@ -47,87 +46,27 @@ const groupAndFilterPacientes = (pacientes, searchText) => {
     return acc;
   }, {});
 
-  const sections = Object.keys(grouped)
+  return Object.keys(grouped)
     .sort()
     .map(letter => ({
       title: letter,
       data: grouped[letter],
     }));
-
-  return sections;
 };
 
-// =========================================================================
-// COMPONENTE CARD EXPANSÍVEL DO PACIENTE
-// =========================================================================
-const PacienteCard = ({ paciente, navigation }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  const toggleExpand = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setIsExpanded(!isExpanded);
-  };
-
-  return (
-    <View style={cardStyles.card}>
-      {/* SEÇÃO PRINCIPAL VISÍVEL */}
-      <TouchableOpacity onPress={toggleExpand} style={cardStyles.mainInfo}>
-        <View>
-          <Text style={cardStyles.nome}>{paciente.nome}</Text>
-          <Text style={cardStyles.subtitulo}>CPF: {paciente.cpf}</Text>
-        </View>
-        
-        <Image
-          source={IconeSeta}
-          style={[
-            cardStyles.arrowIcon,
-            { transform: [{ rotate: isExpanded ? '90deg' : '0deg' }] },
-          ]}
-        />
-      </TouchableOpacity>
-
-      {/* SEÇÃO EXPANSÍVEL (Detalhes) */}
-      {isExpanded && (
-        <View style={cardStyles.details}>
-          <Text style={cardStyles.detailText}>Nascimento: {paciente.dataNascimento}</Text>
-          <Text style={cardStyles.detailText}>Telefone: {paciente.telefone}</Text>
-          <Text style={cardStyles.detailText}>Email: {paciente.email}</Text>
-          
-          <View style={cardStyles.actionButtons}>
-            <Button
-              title="Editar"
-              onPress={() => navigation.navigate('PacienteForm', paciente)}
-            />
-            <Button
-              title="Desativar Perfil"
-              color="red"
-              onPress={() => navigation.navigate('EmConstrucao')} 
-            />
-          </View>
-        </View>
-      )}
-    </View>
-  );
-};
-
-// =========================================================================
 // TELA PRINCIPAL
-// =========================================================================
 const Paciente = ({ navigation }) => {
   const [pacientes, setPacientes] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(null);
   const [searchText, setSearchText] = useState('');
 
-  // Busca pacientes no servidor backend
   const buscarPacientes = async () => {
     setCarregando(true);
     setErro(null);
     try {
       const resposta = await fetch(`${BASE_URL}/pacientes`);
-      if (!resposta.ok) {
-        throw new Error(`Erro HTTP ${resposta.status}`);
-      }
+      if (!resposta.ok) throw new Error(`Erro HTTP ${resposta.status}`);
       const dados = await resposta.json();
       setPacientes(dados);
     } catch (e) {
@@ -137,18 +76,16 @@ const Paciente = ({ navigation }) => {
     }
   };
 
-    useFocusEffect(
-      useCallback(() => {
-        buscarPacientes();
-      }, [])
-    );
+  useFocusEffect(
+    useCallback(() => {
+      buscarPacientes();
+    }, [])
+  );
 
   const sections = useMemo(() => groupAndFilterPacientes(pacientes, searchText), [pacientes, searchText]);
 
   return (
     <View style={styles.container}>
-      
-      {/* CAMPO PESQUISAR */}
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
@@ -159,7 +96,6 @@ const Paciente = ({ navigation }) => {
         <Image source={IconeLupa} style={styles.searchIcon} />
       </View>
 
-      {/* TRATAMENTO DE STATUS DA API */}
       {carregando && (
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#007AFF" />
@@ -174,13 +110,18 @@ const Paciente = ({ navigation }) => {
         </View>
       )}
 
-      {/* LISTA ROLÁVEL */}
       {!carregando && !erro && (
         <View style={styles.listWrapper}>
           <SectionList
             sections={sections}
             keyExtractor={(item) => item.id.toString()}
-            renderItem={({ item }) => <PacienteCard paciente={item} navigation={navigation} />}
+            renderItem={({ item }) => (
+              <PacienteCard 
+                paciente={item} 
+                navigation={navigation} 
+                onDeleteSuccess={buscarPacientes} 
+              />
+            )}
             renderSectionHeader={({ section: { title } }) => (
               <Text style={styles.sectionHeader}>{title}</Text>
             )}
@@ -190,7 +131,6 @@ const Paciente = ({ navigation }) => {
         </View>
       )}
 
-      {/* BOTÃO FIXO */}
       <View style={styles.fixedButtonContainer}>
         <Button
           title="Cadastrar Novo Paciente"
@@ -201,15 +141,70 @@ const Paciente = ({ navigation }) => {
   );
 };
 
-// =========================================================================
-// ESTILOS
-// =========================================================================
+// COMPONENTE CARD EXPANSÍVEL
+const PacienteCard = ({ paciente, navigation, onDeleteSuccess }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const toggleExpand = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsExpanded(!isExpanded);
+  };
+
+  const deletePacient = async (id) => {
+    try {
+      const resposta = await fetch(`${BASE_URL}/pacientes/${id}`, { method: 'DELETE' });
+      if (resposta.ok) {
+        Alert.alert("Sucesso", "Paciente excluído com sucesso!");
+        if (onDeleteSuccess) onDeleteSuccess(); 
+      } else {
+        Alert.alert("Erro", "Não foi possível excluir o paciente.");
+      }
+    } catch (e) {
+      Alert.alert("Erro", "Falha de conexão ao tentar excluir.");
+    }
+  };
+
+  return (
+    <View style={cardStyles.card}>
+      <TouchableOpacity onPress={toggleExpand} style={cardStyles.mainInfo}>
+        <View>
+          <Text style={cardStyles.nome}>{paciente.nome}</Text>
+          <Text style={cardStyles.subtitulo}>CPF: {paciente.cpf}</Text>
+        </View>
+        <Image
+          source={IconeSeta}
+          style={[
+            cardStyles.arrowIcon,
+            { transform: [{ rotate: isExpanded ? '90deg' : '0deg' }] },
+          ]}
+        />
+      </TouchableOpacity>
+
+      {isExpanded && (
+        <View style={cardStyles.details}>
+          <Text style={cardStyles.detailText}>Nascimento: {paciente.dataNascimento}</Text>
+          <Text style={cardStyles.detailText}>Telefone: {paciente.telefone}</Text>
+          <Text style={cardStyles.detailText}>Email: {paciente.email}</Text>
+          
+          <View style={cardStyles.actionButtons}>
+            <Button
+              title="Editar"
+              onPress={() => navigation.navigate('PacienteForm', paciente)}
+            />
+            <Button
+              title="Excluir"
+              color="red"
+              onPress={() => deletePacient(paciente.id)} 
+            />
+          </View>
+        </View>
+      )}
+    </View>
+  );
+};
+
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: '#f5f5f5', 
-    padding: 10 
-  },
+  container: { flex: 1, backgroundColor: '#f5f5f5', padding: 10 },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -220,22 +215,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     paddingHorizontal: 10,
   },
-  searchInput: {
-    flex: 1,
-    height: 40,
-  },
-  searchIcon: {
-    width: 20,
-    height: 20,
-    marginLeft: 10,
-    tintColor: '#aaa',
-  },
-  listWrapper: {
-    flex: 1, 
-  },
-  sectionListContent: {
-    paddingBottom: 10,
-  },
+  searchInput: { flex: 1, height: 40 },
+  searchIcon: { width: 20, height: 20, marginLeft: 10, tintColor: '#aaa' },
+  listWrapper: { flex: 1 },
+  sectionListContent: { paddingBottom: 10 },
   sectionHeader: {
     fontSize: 20,
     fontWeight: 'bold',
@@ -251,15 +234,8 @@ const styles = StyleSheet.create({
     borderTopColor: '#ddd',
     marginBottom: 25,
   },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  erroText: {
-    color: 'red',
-    marginBottom: 10,
-  }
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  erroText: { color: 'red', marginBottom: 10 }
 });
 
 const cardStyles = StyleSheet.create({
@@ -278,31 +254,16 @@ const cardStyles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  nome: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#007AFF',
-  },
-  subtitulo: {
-    fontSize: 14,
-    color: '#555',
-  },
-  arrowIcon: {
-    width: 15,
-    height: 15,
-    tintColor: '#007AFF',
-  },
+  nome: { fontSize: 18, fontWeight: 'bold', color: '#007AFF' },
+  subtitulo: { fontSize: 14, color: '#555' },
+  arrowIcon: { width: 15, height: 15, tintColor: '#007AFF' },
   details: {
     padding: 15,
     paddingTop: 0,
     borderTopWidth: 1,
     borderTopColor: '#eee',
   },
-  detailText: {
-    fontSize: 14,
-    marginBottom: 5,
-    color: '#333',
-  },
+  detailText: { fontSize: 14, marginBottom: 5, color: '#333' },
   actionButtons: {
     flexDirection: 'row',
     justifyContent: 'space-around',
