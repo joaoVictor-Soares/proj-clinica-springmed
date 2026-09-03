@@ -71,6 +71,19 @@ const MedicoCard = ({ medico, navigation }) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setIsExpanded(!isExpanded);
   };
+  const deleteMedic = async (id) => {
+    try {
+      const resposta = await fetch(`${BASE_URL}/medicos/${id}`, { method: 'DELETE' });
+      if (resposta.ok) {
+        Alert.alert("Sucesso", "Médico excluído com sucesso!");
+        if (onDeleteSuccess) onDeleteSuccess(); 
+      } else {
+        Alert.alert("Erro", "Não foi possível excluir o médico.");
+      }
+    } catch (e) {
+      Alert.alert("Erro", "Falha de conexão ao tentar excluir.");
+    }
+  };
 
   return (
     <View style={cardStyles.card}>
@@ -102,6 +115,11 @@ const MedicoCard = ({ medico, navigation }) => {
             <Button
               title="Editar"
               onPress={() => navigation.navigate('MedicoForm', medico)} // Deveria ser uma tela de edição
+            />
+            <Button
+              title="Excluir"
+              color="red"
+              onPress={() => deleteMedic(medico.id)} 
             />
             <Button
               title="Desativar Perfil"
