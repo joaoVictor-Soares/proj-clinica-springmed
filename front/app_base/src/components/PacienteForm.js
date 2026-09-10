@@ -11,7 +11,7 @@ import {
   ActivityIndicator
 } from 'react-native';
 
-const BASE_URL = 'http://192.168.1.11:3000';
+const BASE_URL = 'http://192.168.1.9:3000';
 
 const initialPacienteState = {
   nome: '',
