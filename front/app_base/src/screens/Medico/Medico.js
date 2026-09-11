@@ -1,5 +1,6 @@
 // src/screens/Medico/Op1Screen.js (Reescrito)
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { 
   View, 
   Text, 
@@ -11,8 +12,12 @@ import {
   LayoutAnimation,
   UIManager,
   Button,
-  Image
+  Image,
+  ActivityIndicator,
+  Alert
 } from 'react-native';
+
+const BASE_URL = 'http://10.110.12.44:3000';
 
 // Ícones (você precisará ter esses arquivos PNG ou usar uma biblioteca de ícones)
 // Assumindo que você tem um ícone de lupa e um triângulo/seta
@@ -66,6 +71,19 @@ const MedicoCard = ({ medico, navigation }) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setIsExpanded(!isExpanded);
   };
+  const deleteMedic = async (id) => {
+    try {
+      const resposta = await fetch(`${BASE_URL}/medicos/${id}`, { method: 'DELETE' });
+      if (resposta.ok) {
+        Alert.alert("Sucesso", "Médico excluído com sucesso!");
+        if (onDeleteSuccess) onDeleteSuccess(); 
+      } else {
+        Alert.alert("Erro", "Não foi possível excluir o médico.");
+      }
+    } catch (e) {
+      Alert.alert("Erro", "Falha de conexão ao tentar excluir.");
+    }
+  };
 
   return (
     <View style={cardStyles.card}>
@@ -99,6 +117,11 @@ const MedicoCard = ({ medico, navigation }) => {
               onPress={() => navigation.navigate('MedicoForm', medico)} // Deveria ser uma tela de edição
             />
             <Button
+              title="Excluir"
+              color="red"
+              onPress={() => deleteMedic(medico.id)} 
+            />
+            <Button
               title="Desativar Perfil"
               color="red"
               onPress={() => navigation.navigate('EmConstrucao')} 
@@ -113,11 +136,63 @@ const MedicoCard = ({ medico, navigation }) => {
 // =========================================================================
 // TELA PRINCIPAL
 // =========================================================================
-const Medico = ({ navigation, medicos }) => {
+const Medico = ({ navigation }) => {
+  const [medicos, setMedicos] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState(null);
   const [searchText, setSearchText] = useState('');
 
-  // Use useMemo para recalcular as seções apenas quando 'medicos' ou 'searchText' mudar
-  const sections = useMemo(() => groupAndFilterMedicos(medicos, searchText), [medicos, searchText]);
+  const buscarMedicos = async () => {
+    try {
+      setCarregando(true);
+      setErro(null);
+
+      const resposta = await fetch(`${BASE_URL}/medicos`);
+
+      if (!resposta.ok) {
+        throw new Error('Erro ao buscar médicos');
+      }
+
+      const dados = await resposta.json();
+
+      setMedicos(dados);
+    } catch (error) {
+      setErro(error.message);
+    } finally {
+      setCarregando(false);
+    }
+  };
+    useEffect(() => {
+    buscarMedicos();
+  }, []);
+
+  const sections = useMemo(
+    () => groupAndFilterMedicos(medicos, searchText),
+    [medicos, searchText]
+  );
+  if (carregando) {
+  return (
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator size="large" />
+      <Text>Carregando médicos...</Text>
+    </View>
+  );
+}
+
+if (erro) {
+  return (
+    <View style={styles.loadingContainer}>
+      <Text>Erro: {erro}</Text>
+
+      <Button
+        title="Tentar novamente"
+        onPress={buscarMedicos}
+      />
+    </View>
+  );
+}
+
+
 
   return (
     <View style={styles.container}>
@@ -259,7 +334,13 @@ const cardStyles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     marginTop: 10,
-  }
+  },
+  loadingContainer: {
+  flex: 1,
+  justifyContent: 'center',
+  alignItems: 'center',
+  padding: 20,
+},
 });
 
 export default Medico;
