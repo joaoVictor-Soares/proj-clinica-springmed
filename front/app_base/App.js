@@ -1,10 +1,14 @@
-// App.js (Usando React Navigation como exemplo de estrutura profissional)
-import React, { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 
-// Importa todos os componentes de tela
+// Serviços de Sessão
+import { estaLogado } from './src/services/sessao';
+
+// Importação das Telas
+import LoginScreen from './src/screens/Login/LoginScreen';
+import AcessoNegadoScreen from './src/screens/AcessoNegado/AcessoNegadoScreen';
 import Splash from './src/screens/Splash/Splash';
 import MenuScreen from './src/screens/Menu/MenuScreen';
 import Medico from './src/screens/Medico/Medico';
@@ -22,33 +26,63 @@ function App() {
     {id:4, "nome":"Beatriz Souza", "especialidade":"Ginecologista", "crm": "45678/RJ", "email": "beatriz@clinica.com", "telefone": "(21) 96543-2109", "endereco": "Av. D, 400"},
     {id:5, "nome":"Carlos Santos", "especialidade":"Neurologista", "crm": "56789/BA", "email": "carlos@clinica.com", "telefone": "(71) 95432-1098", "endereco": "Praça E, 500"},
   ]);
-  const [pacientes, setPacientes] = useState([]);
-  const [consultas, setConsultas] = useState([]);
 
-  // Função que passa os dados de 'medicos' para a tela 'Op1'
+  const [verificandoSessao, setVerificandoSessao] = useState(true);
+  const [usuarioLogado, setUsuarioLogado] = useState(false);
+
+  // Verifica se há token salvo antes de carregar a interface inicial
+  useEffect(() => {
+    const checarSessao = async () => {
+      const logado = await estaLogado();
+      setUsuarioLogado(logado);
+      setVerificandoSessao(false);
+    };
+    checarSessao();
+  }, []);
+
   const MedicoList = (props) => (
     <Medico {...props} medicos={medicos} />
   );
 
+  // Tela de carregamento enquanto valida a sessão
+  if (verificandoSessao) {
+    return (
+      <View style={styles.carregandoContainer}>
+        <ActivityIndicator size="large" color="#1F3B57" />
+      </View>
+    );
+  }
+
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Splash">
-        {/* A tela de Splash é a primeira, sem cabeçalho */}
+      <Stack.Navigator initialRouteName={usuarioLogado ? 'Menu' : 'Login'}>
+        {/* Rota de Login */}
+        <Stack.Screen 
+          name="Login" 
+          component={LoginScreen} 
+          options={{ headerShown: false }} 
+        />
+
         <Stack.Screen name="Splash" component={Splash} options={{ headerShown: false }} />
-        {/* A tela Menu é o ponto de partida após o carregamento */}
         <Stack.Screen name="Menu" component={MenuScreen} options={{ title: 'Menu Principal' }} />
         
+        {/* Rotas protegidas da aplicação */}
         <Stack.Screen name="Medicos" component={MedicoList} options={{ title: 'Médico(a)s' }} />
-        {/* ROTA DE PACIENTES ATIVADA ABAIXO */}
         <Stack.Screen name="Pacientes" component={Paciente} options={{ title: 'Pacientes' }} />
         <Stack.Screen 
           name="PacienteForm" 
           component={PacienteForm} 
           options={{ title: 'Formulário do Paciente' }}
         />
-        
         <Stack.Screen name="MedicoForm" component={CadastroEdicaoMedicoScreen} options={{ title: 'Gerenciar Médico' }} />
-        
+
+        {/* Rota de Acesso Recusado / Negado */}
+        <Stack.Screen 
+          name="AcessoNegado" 
+          component={AcessoNegadoScreen} 
+          options={{ title: 'Acesso Negado' }} 
+        />
+
         <Stack.Screen name="EmConstrucao" component={() => (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                 <Text style={{ fontSize: 24 }}>Em Construção!</Text>
@@ -58,5 +92,14 @@ function App() {
     </NavigationContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  carregandoContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+});
 
 export default App;

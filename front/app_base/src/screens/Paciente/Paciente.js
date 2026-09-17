@@ -20,7 +20,7 @@ import {
 const IconeLupa = require('../../../assets/lupa.png');
 const IconeSeta = require('../../../assets/seta.png');
 
-const BASE_URL = 'http://192.168.1.11:3000';
+const BASE_URL = 'http://192.168.1.9:3000';
 
 if (Platform.OS === 'android') {
   if (UIManager.setLayoutAnimationEnabledExperimental) {
