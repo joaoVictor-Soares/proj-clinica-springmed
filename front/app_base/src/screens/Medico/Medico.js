@@ -17,7 +17,7 @@ import {
   Alert
 } from 'react-native';
 
-const BASE_URL = 'http://10.110.12.44:3000';
+const BASE_URL = 'http://192.168.1.5:3000';
 
 // Ícones (você precisará ter esses arquivos PNG ou usar uma biblioteca de ícones)
 // Assumindo que você tem um ícone de lupa e um triângulo/seta
