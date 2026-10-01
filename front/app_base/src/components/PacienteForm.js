@@ -11,16 +11,23 @@ import {
   ActivityIndicator
 } from 'react-native';
 
-const BASE_URL = 'http://192.168.1.9:3000';
+const BASE_URL = 'http://192.168.1.5:3000';
 
 const initialPacienteState = {
   nome: '',
   email: '',
   telefone: '',
   dataNascimento: '',
-  cpf: ''
+  cpf: '',
+  // Campos de Logradouro / Endereço
+  cep: '',
+  logradouro: '',
+  numero: '',
+  bairro: '',
+  cidade: '',
+  uf: '',
+  complemento: ''
 };
-
 
 const ValidatedInput = ({ label, name, value, onChangeText, error, ...props }) => (
   <View style={formStyles.inputGroup}>
@@ -36,7 +43,6 @@ const ValidatedInput = ({ label, name, value, onChangeText, error, ...props }) =
 );
 
 const PacienteForm = ({ route, navigation }) => {
-  // Pega os dados do paciente passados por parâmetro via navegação
   const pacienteParam = route?.params || null;
 
   const [formData, setFormData] = useState(pacienteParam || initialPacienteState);
@@ -46,7 +52,20 @@ const PacienteForm = ({ route, navigation }) => {
   const isEditing = !!pacienteParam?.id;
   const buttonTitle = isEditing ? 'Concluir Edição' : 'Concluir Cadastro';
 
-  const requiredFields = ['nome', 'cpf', 'dataNascimento', 'email', 'telefone'];
+  // Adicionados os campos de endereço na validação obrigatória (exceto complemento)
+  const requiredFields = [
+    'nome', 
+    'cpf', 
+    'dataNascimento', 
+    'email', 
+    'telefone',
+    'cep',
+    'logradouro',
+    'numero',
+    'bairro',
+    'cidade',
+    'uf'
+  ];
 
   useEffect(() => {
     if (pacienteParam) {
@@ -89,7 +108,6 @@ const PacienteForm = ({ route, navigation }) => {
     setSaving(true);
 
     try {
-      // Define a URL e o Método HTTP com base no modo (Criar ou Editar)
       const url = isEditing 
         ? `${BASE_URL}/pacientes/${formData.id}` 
         : `${BASE_URL}/pacientes`;
@@ -160,7 +178,7 @@ const PacienteForm = ({ route, navigation }) => {
         <ValidatedInput 
           label="E-mail" 
           name="email" 
-        value={formData.email}
+          value={formData.email}
           onChangeText={handleChange}
           error={errors.email}
           placeholder="email@exemplo.com" 
@@ -171,11 +189,81 @@ const PacienteForm = ({ route, navigation }) => {
         <ValidatedInput 
           label="Telefone Celular" 
           name="telefone"  
-          value={formData.telfone}
+          value={formData.telefone}
           onChangeText={handleChange}
           error={errors.telefone}
           placeholder="(XX) XXXXX-XXXX" 
           keyboardType="phone-pad"
+        />
+
+        {/* 3. LOGRADOURO E ENDEREÇO */}
+        <Text style={styles.sectionHeader}>3. Logradouro</Text>
+        
+        <ValidatedInput 
+          label="CEP" 
+          name="cep" 
+          value={formData.cep}
+          onChangeText={handleChange}
+          error={errors.cep}
+          placeholder="00000-000" 
+          keyboardType="numeric"
+        />
+
+        <ValidatedInput 
+          label="Logradouro / Rua" 
+          name="logradouro" 
+          value={formData.logradouro}
+          onChangeText={handleChange}
+          error={errors.logradouro}
+          placeholder="Ex: Av. Paulista" 
+        />
+
+        <ValidatedInput 
+          label="Número" 
+          name="numero" 
+          value={formData.numero}
+          onChangeText={handleChange}
+          error={errors.numero}
+          placeholder="123" 
+          keyboardType="numeric"
+        />
+
+        <ValidatedInput 
+          label="Complemento (Opcional)" 
+          name="complemento" 
+          value={formData.complemento}
+          onChangeText={handleChange}
+          error={errors.complemento}
+          placeholder="Apto 45, Bloco B" 
+        />
+
+        <ValidatedInput 
+          label="Bairro" 
+          name="bairro" 
+          value={formData.bairro}
+          onChangeText={handleChange}
+          error={errors.bairro}
+          placeholder="Centro" 
+        />
+
+        <ValidatedInput 
+          label="Cidade" 
+          name="cidade" 
+          value={formData.cidade}
+          onChangeText={handleChange}
+          error={errors.cidade}
+          placeholder="São Paulo" 
+        />
+
+        <ValidatedInput 
+          label="Estado (UF)" 
+          name="uf" 
+          value={formData.uf}
+          onChangeText={handleChange}
+          error={errors.uf}
+          placeholder="SP" 
+          maxLength={2}
+          autoCapitalize="characters"
         />
 
       </ScrollView>
