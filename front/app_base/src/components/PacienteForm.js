@@ -10,6 +10,7 @@ import {
   Alert,
   ActivityIndicator
 } from 'react-native';
+import { consultarCep } from '../services/viacep';
 
 const BASE_URL = 'http://192.168.1.5:3000';
 
@@ -19,7 +20,6 @@ const initialPacienteState = {
   telefone: '',
   dataNascimento: '',
   cpf: '',
-  // Campos de Logradouro / Endereço
   cep: '',
   logradouro: '',
   numero: '',
@@ -49,22 +49,16 @@ const PacienteForm = ({ route, navigation }) => {
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
+  // Estados para o serviço de CEP
+  const [buscandoCep, setBuscandoCep] = useState(false);
+  const [avisoCep, setAvisoCep] = useState('');
+
   const isEditing = !!pacienteParam?.id;
   const buttonTitle = isEditing ? 'Concluir Edição' : 'Concluir Cadastro';
 
-  // Adicionados os campos de endereço na validação obrigatória (exceto complemento)
   const requiredFields = [
-    'nome', 
-    'cpf', 
-    'dataNascimento', 
-    'email', 
-    'telefone',
-    'cep',
-    'logradouro',
-    'numero',
-    'bairro',
-    'cidade',
-    'uf'
+    'nome', 'cpf', 'dataNascimento', 'email', 'telefone',
+    'cep', 'logradouro', 'numero', 'bairro', 'cidade', 'uf'
   ];
 
   useEffect(() => {
@@ -81,6 +75,33 @@ const PacienteForm = ({ route, navigation }) => {
         delete newErrors[name];
         return newErrors;
       });
+    }
+  };
+
+  // Dispara a consulta no onBlur quando o CEP tiver 8 dígitos
+  const handleBuscarCep = async () => {
+    const cepLimpo = (formData.cep || '').replace(/\D/g, '');
+    if (cepLimpo.length !== 8) return;
+
+    setBuscandoCep(true);
+    setAvisoCep('');
+
+    try {
+      const enderecoEncontrado = await consultarCep(formData.cep);
+      
+      // Preenche os campos automaticamente
+      setFormData(prev => ({
+        ...prev,
+        logradouro: enderecoEncontrado.logradouro || prev.logradouro,
+        bairro: enderecoEncontrado.bairro || prev.bairro,
+        cidade: enderecoEncontrado.cidade || prev.cidade,
+        uf: enderecoEncontrado.uf || prev.uf,
+      }));
+    } catch (erro) {
+      // Aviso não-fatal: informa o ocorrido mas deixa os campos livres para digitação manual
+      setAvisoCep(`${erro.message} Preencha os dados de endereço manualmente.`);
+    } finally {
+      setBuscandoCep(false);
     }
   };
 
@@ -114,10 +135,8 @@ const PacienteForm = ({ route, navigation }) => {
       const method = isEditing ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
-        method: method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        method,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
 
@@ -196,7 +215,7 @@ const PacienteForm = ({ route, navigation }) => {
           keyboardType="phone-pad"
         />
 
-        {/* 3. LOGRADOURO E ENDEREÇO */}
+        {/* 3. LOGRADOURO */}
         <Text style={styles.sectionHeader}>3. Logradouro</Text>
         
         <ValidatedInput 
@@ -204,10 +223,27 @@ const PacienteForm = ({ route, navigation }) => {
           name="cep" 
           value={formData.cep}
           onChangeText={handleChange}
+          onBlur={handleBuscarCep}
           error={errors.cep}
           placeholder="00000-000" 
           keyboardType="numeric"
+          maxLength={9}
         />
+
+        {/* Indicador de carregamento do CEP */}
+        {buscandoCep && (
+          <View style={styles.feedbackCep}>
+            <ActivityIndicator size="small" color="#007AFF" />
+            <Text style={styles.textoCarregandoCep}> Buscando endereço no ViaCEP...</Text>
+          </View>
+        )}
+
+        {/* Mensagem de aviso em caso de falha não-fatal no CEP */}
+        {!!avisoCep && (
+          <View style={styles.caixaAvisoCep}>
+            <Text style={styles.textoAvisoCep}>{avisoCep}</Text>
+          </View>
+        )}
 
         <ValidatedInput 
           label="Logradouro / Rua" 
@@ -295,21 +331,9 @@ const PacienteForm = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 100,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    textAlign: 'center',
-    color: '#333',
-  },
+  container: { flex: 1, backgroundColor: '#fff' },
+  scrollContent: { padding: 20, paddingBottom: 100 },
+  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 10, textAlign: 'center', color: '#333' },
   sectionHeader: {
     fontSize: 18,
     fontWeight: 'bold',
@@ -320,11 +344,20 @@ const styles = StyleSheet.create({
     borderBottomColor: '#eee',
     paddingBottom: 5,
   },
+  feedbackCep: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
+  textoCarregandoCep: { color: '#007AFF', fontSize: 13, marginLeft: 6 },
+  caixaAvisoCep: {
+    padding: 10,
+    backgroundColor: '#fff3cd',
+    borderColor: '#ffeeba',
+    borderWidth: 1,
+    borderRadius: 6,
+    marginBottom: 15,
+  },
+  textoAvisoCep: { color: '#856404', fontSize: 13 },
   buttonContainer: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+    bottom: 0, left: 0, right: 0,
     padding: 10,
     backgroundColor: '#fff',
     borderTopWidth: 1,
@@ -335,15 +368,8 @@ const styles = StyleSheet.create({
 });
 
 const formStyles = StyleSheet.create({
-  inputGroup: {
-    marginBottom: 15,
-  },
-  label: {
-    fontSize: 14,
-    marginBottom: 5,
-    fontWeight: '500',
-    color: '#333',
-  },
+  inputGroup: { marginBottom: 15 },
+  label: { fontSize: 14, marginBottom: 5, fontWeight: '500', color: '#333' },
   input: {
     borderWidth: 1,
     borderColor: '#ccc',
@@ -353,34 +379,12 @@ const formStyles = StyleSheet.create({
     backgroundColor: '#f9f9f9',
     height: 45,
   },
-  inputError: {
-    borderColor: 'red',
-    borderWidth: 2,
-    backgroundColor: '#ffe8e8',
-  },
-  errorText: {
-    fontSize: 12,
-    color: 'red',
-    marginTop: 4,
-  },
-  button: {
-    flex: 1,
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginHorizontal: 5,
-  },
-  saveButton: {
-    backgroundColor: '#007AFF',
-  },
-  cancelButton: {
-    backgroundColor: '#6c757d',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
+  inputError: { borderColor: 'red', borderWidth: 2, backgroundColor: '#ffe8e8' },
+  errorText: { fontSize: 12, color: 'red', marginTop: 4 },
+  button: { flex: 1, padding: 15, borderRadius: 8, alignItems: 'center', marginHorizontal: 5 },
+  saveButton: { backgroundColor: '#007AFF' },
+  cancelButton: { backgroundColor: '#6c757d' },
+  buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
 });
 
 export default PacienteForm;
