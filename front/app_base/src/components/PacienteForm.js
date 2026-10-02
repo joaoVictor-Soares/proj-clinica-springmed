@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { consultarCep } from '../services/viacep';
 
-const BASE_URL = 'http://192.168.1.5:3000';
+const BASE_URL = 'http://192.168.56.1:3000';
 
 const initialPacienteState = {
   nome: '',

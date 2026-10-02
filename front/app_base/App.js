@@ -15,6 +15,7 @@ import Medico from './src/screens/Medico/Medico';
 import Paciente from './src/screens/Paciente/Paciente';
 import CadastroEdicaoMedicoScreen from './src/screens/Medico/CadastroEdicaoMedicoScreen';
 import PacienteForm from './src/components/PacienteForm';
+import LoginBiometrico from './src/screens/Login/LoginBiometrico';
 
 const Stack = createStackNavigator();
 
@@ -55,7 +56,14 @@ function App() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName={usuarioLogado ? 'Menu' : 'Login'}>
+      <Stack.Navigator initialRouteName={usuarioLogado ? 'LoginBiometrico' : 'Login'}>
+
+        {/* Com token guardado, o app abre aqui: a biometria destranca a sessão */}
+        <Stack.Screen 
+          name="LoginBiometrico" 
+          component={LoginBiometrico} 
+          options={{ headerShown: false }} 
+        />
         {/* Rota de Login */}
         <Stack.Screen 
           name="Login" 
