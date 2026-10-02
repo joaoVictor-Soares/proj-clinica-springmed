@@ -16,6 +16,7 @@ import Paciente from './src/screens/Paciente/Paciente';
 import CadastroEdicaoMedicoScreen from './src/screens/Medico/CadastroEdicaoMedicoScreen';
 import PacienteForm from './src/components/PacienteForm';
 import LoginBiometrico from './src/screens/Login/LoginBiometrico';
+import Consulta from './src/screens/Consulta/Consulta';
 
 const Stack = createStackNavigator();
 
@@ -77,6 +78,7 @@ function App() {
         {/* Rotas protegidas da aplicação */}
         <Stack.Screen name="Medicos" component={MedicoList} options={{ title: 'Médico(a)s' }} />
         <Stack.Screen name="Pacientes" component={Paciente} options={{ title: 'Pacientes' }} />
+        <Stack.Screen name="Consultas" component={Consulta} options={{ title: 'Consultas' }} />
         <Stack.Screen 
           name="PacienteForm" 
           component={PacienteForm} 
