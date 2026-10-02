@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
   Image
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+// import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { consultarCep } from '../services/viacep'; 
 
@@ -200,7 +200,7 @@ const PacienteForm = ({ route, navigation }) => {
   };
 
   return (
-    <SafeAreaView>
+    // <SafeAreaView>
       <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         
@@ -385,7 +385,7 @@ const PacienteForm = ({ route, navigation }) => {
         </TouchableOpacity>
       </View>
     </View>
-    </SafeAreaView>
+    // </SafeAreaView>
   );
 };
 
