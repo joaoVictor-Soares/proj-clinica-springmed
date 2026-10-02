@@ -8,11 +8,14 @@ import {
   StyleSheet, 
   TouchableOpacity, 
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
+  Image
 } from 'react-native';
-import { consultarCep } from '../services/viacep';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
+import { consultarCep } from '../services/viacep'; 
 
-const BASE_URL = 'http://192.168.1.5:3000';
+const BASE_URL = 'http://10.110.12.44:3000';
 
 const initialPacienteState = {
   nome: '',
@@ -26,7 +29,8 @@ const initialPacienteState = {
   bairro: '',
   cidade: '',
   uf: '',
-  complemento: ''
+  complemento: '',
+  fotoUri: null
 };
 
 const ValidatedInput = ({ label, name, value, onChangeText, error, ...props }) => (
@@ -46,6 +50,9 @@ const PacienteForm = ({ route, navigation }) => {
   const pacienteParam = route?.params || null;
 
   const [formData, setFormData] = useState(pacienteParam || initialPacienteState);
+  // Item 5: Estado para a URI da foto[cite: 15]
+  const [fotoUri, setFotoUri] = useState(pacienteParam?.fotoUri || null);
+  
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
@@ -61,11 +68,47 @@ const PacienteForm = ({ route, navigation }) => {
     'cep', 'logradouro', 'numero', 'bairro', 'cidade', 'uf'
   ];
 
+  // Item 10: Atualiza a fotoUri quando o objeto do paciente muda[cite: 15]
   useEffect(() => {
     if (pacienteParam) {
       setFormData(pacienteParam);
+      setFotoUri(pacienteParam.fotoUri || null);
+    } else {
+      setFormData(initialPacienteState);
+      setFotoUri(null);
     }
   }, [pacienteParam]);
+
+  // Itens 6, 7 e 8: Função para solicitar permissão e abrir a câmera[cite: 15]
+  const escolherFoto = async () => {
+    // Solicita permissão da câmera
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    
+    if (status !== 'granted') {
+      Alert.alert(
+        'Permissão necessária',
+        'É preciso conceder acesso à câmera para definir a foto de perfil.'
+      );
+      return;
+    }
+
+    // Abre a câmera com recorte quadrado[cite: 15]
+    const resultado = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.4,
+      base64: true
+    });
+
+    // Trata fechamento sem foto sem quebrar a tela[cite: 15]
+    if (!resultado.canceled && resultado.assets[0]) {
+      const asset = resultado.assets[0]
+
+      const base64uri = `data:image/jpeg;base64,${asset.base64}`
+
+      setFotoUri(base64uri);
+    }
+  };
 
   const handleChange = (name, value) => {
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -78,7 +121,6 @@ const PacienteForm = ({ route, navigation }) => {
     }
   };
 
-  // Dispara a consulta no onBlur quando o CEP tiver 8 dígitos
   const handleBuscarCep = async () => {
     const cepLimpo = (formData.cep || '').replace(/\D/g, '');
     if (cepLimpo.length !== 8) return;
@@ -89,7 +131,6 @@ const PacienteForm = ({ route, navigation }) => {
     try {
       const enderecoEncontrado = await consultarCep(formData.cep);
       
-      // Preenche os campos automaticamente
       setFormData(prev => ({
         ...prev,
         logradouro: enderecoEncontrado.logradouro || prev.logradouro,
@@ -98,7 +139,6 @@ const PacienteForm = ({ route, navigation }) => {
         uf: enderecoEncontrado.uf || prev.uf,
       }));
     } catch (erro) {
-      // Aviso não-fatal: informa o ocorrido mas deixa os campos livres para digitação manual
       setAvisoCep(`${erro.message} Preencha os dados de endereço manualmente.`);
     } finally {
       setBuscandoCep(false);
@@ -128,6 +168,9 @@ const PacienteForm = ({ route, navigation }) => {
 
     setSaving(true);
 
+    // Item 9: Inclui fotoUri nos dados salvos[cite: 15]
+    const dadosParaSalvar = { ...formData, fotoUri };
+
     try {
       const url = isEditing 
         ? `${BASE_URL}/pacientes/${formData.id}` 
@@ -137,7 +180,7 @@ const PacienteForm = ({ route, navigation }) => {
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(dadosParaSalvar),
       });
 
       if (response.ok) {
@@ -157,10 +200,27 @@ const PacienteForm = ({ route, navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView>
+      <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         
         <Text style={styles.title}>{isEditing ? 'Editar Paciente' : 'Novo Paciente'}</Text>
+
+        {/* Item 9: Destaque da Foto de Perfil no topo do formulário[cite: 15] */}
+        <View style={styles.avatarContainer}>
+          {fotoUri ? (
+            <Image source={{ uri: fotoUri }} style={styles.avatar} />
+          ) : (
+            <View style={[styles.avatar, styles.avatarPlaceholder]}>
+              <Text style={styles.avatarText}>Sem Foto</Text>
+            </View>
+          )}
+          <TouchableOpacity style={styles.botaoFoto} onPress={escolherFoto}>
+            <Text style={styles.botaoFotoTexto}>
+              {fotoUri ? 'Alterar Foto' : 'Tirar Foto de Perfil'}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         {/* 1. DADOS PESSOAIS */}
         <Text style={styles.sectionHeader}>1. Dados Pessoais</Text>
@@ -230,7 +290,6 @@ const PacienteForm = ({ route, navigation }) => {
           maxLength={9}
         />
 
-        {/* Indicador de carregamento do CEP */}
         {buscandoCep && (
           <View style={styles.feedbackCep}>
             <ActivityIndicator size="small" color="#007AFF" />
@@ -238,7 +297,6 @@ const PacienteForm = ({ route, navigation }) => {
           </View>
         )}
 
-        {/* Mensagem de aviso em caso de falha não-fatal no CEP */}
         {!!avisoCep && (
           <View style={styles.caixaAvisoCep}>
             <Text style={styles.textoAvisoCep}>{avisoCep}</Text>
@@ -327,6 +385,7 @@ const PacienteForm = ({ route, navigation }) => {
         </TouchableOpacity>
       </View>
     </View>
+    </SafeAreaView>
   );
 };
 
@@ -334,6 +393,26 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   scrollContent: { padding: 20, paddingBottom: 100 },
   title: { fontSize: 24, fontWeight: 'bold', marginBottom: 10, textAlign: 'center', color: '#333' },
+  
+  // Estilos da Foto de Perfil / Avatar
+  avatarContainer: { alignItems: 'center', marginVertical: 15 },
+  avatar: { width: 120, height: 120, borderRadius: 60, marginBottom: 10 },
+  avatarPlaceholder: {
+    backgroundColor: '#e1e8ee',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ccc',
+  },
+  avatarText: { color: '#777', fontSize: 13, fontWeight: '500' },
+  botaoFoto: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+  },
+  botaoFotoTexto: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
+
   sectionHeader: {
     fontSize: 18,
     fontWeight: 'bold',

@@ -16,8 +16,8 @@ import {
   ActivityIndicator,
   Alert
 } from 'react-native';
-
-const BASE_URL = 'http://192.168.1.5:3000';
+import { SafeAreaView } from 'react-native-safe-area-context';
+const BASE_URL = 'http://10.110.12.44:3000';
 
 // Ícones (você precisará ter esses arquivos PNG ou usar uma biblioteca de ícones)
 // Assumindo que você tem um ícone de lupa e um triângulo/seta
@@ -86,7 +86,8 @@ const MedicoCard = ({ medico, navigation }) => {
   };
 
   return (
-    <View style={cardStyles.card}>
+    <SafeAreaView>
+      <View style={cardStyles.card}>
       {/* SEÇÃO PRINCIPAL VISÍVEL */}
       <TouchableOpacity onPress={toggleExpand} style={cardStyles.mainInfo}>
         <View>
@@ -130,6 +131,7 @@ const MedicoCard = ({ medico, navigation }) => {
         </View>
       )}
     </View>
+    </SafeAreaView>
   );
 };
 

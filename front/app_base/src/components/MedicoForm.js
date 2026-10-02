@@ -1,3 +1,4 @@
+// src/components/MedicoForm.js
 import React, { useState, useEffect } from 'react';
 import { 
   View, 
@@ -7,18 +8,17 @@ import {
   StyleSheet, 
   TouchableOpacity, 
   Alert,
-  Platform} from 'react-native';
-
+  Platform,
+  Image
+} from 'react-native';
 import { Picker } from '@react-native-picker/picker';
+import * as ImagePicker from 'expo-image-picker';
 
-
-// Lista de Especialidades para o Picker
 const especialidades = ['Cardiologia', 'Pediatria', 'Dermatologia', 'Ginecologia', 'Neurologia', 'Oftalmologia', 'Clínica Geral'];
 
-// Estado inicial vazio para um novo médico
 const initialMedicoState = {
   nome: '',
-  especialidade: especialidades[0], // Padrão
+  especialidade: especialidades[0],
   crm: '',
   email: '',
   telefone: '',
@@ -28,41 +28,56 @@ const initialMedicoState = {
   cidade: '',
   uf: '',
   cep: '',
+  fotoUri: null,
 };
 
-/**
- * Componente MedicoForm para Cadastro ou Edição.
- * @param {object} props.medico - Objeto do médico para edição, ou null para cadastro.
- * @param {function} props.onSave - Função chamada ao concluir com sucesso.
- * @param {function} props.onCancel - Função chamada ao cancelar.
- * @param {object} props.navigation - Objeto de navegação.
- */
 const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
-  // 1. Inicializa o estado com base na prop 'medico'
   const [formData, setFormData] = useState(medico || initialMedicoState);
   
-  // 2. Estado para rastrear erros de validação
+  // Item 5: Estado para a URI da foto[cite: 15]
+  const [fotoUri, setFotoUri] = useState(medico?.fotoUri || null);
+  
   const [errors, setErrors] = useState({});
 
-  // 3. Define o título do botão e o modo do formulário
   const isEditing = !!medico;
   const buttonTitle = isEditing ? 'Concluir Edição' : 'Concluir Cadastro';
 
-  // Campos obrigatórios
   const requiredFields = [
     'nome', 'especialidade', 'crm', 'email', 'telefone', 
     'logradouro', 'numero', 'cidade', 'uf', 'cep'
   ];
 
-  // Atualiza o formData quando o prop 'medico' muda (útil se o componente for reutilizado)
+  // Item 10: Atualiza a fotoUri quando o objeto médico muda[cite: 15]
   useEffect(() => {
     setFormData(medico || initialMedicoState);
+    setFotoUri(medico?.fotoUri || null);
   }, [medico]);
 
-  // Função genérica para atualizar o estado do formulário
+  // Itens 6, 7 e 8: Função de escolha da foto com validação e aviso de permissão[cite: 15]
+  const escolherFoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    
+    if (status !== 'granted') {
+      Alert.alert(
+        'Permissão necessária',
+        'É preciso conceder acesso à câmera para definir a foto de perfil do médico.'
+      );
+      return;
+    }
+
+    const resultado = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.6,
+    });
+
+    if (!resultado.canceled && resultado.assets && resultado.assets[0]) {
+      setFotoUri(resultado.assets[0].uri);
+    }
+  };
+
   const handleChange = (name, value) => {
     setFormData(prev => ({ ...prev, [name]: value }));
-    // Remove o erro assim que o usuário começa a digitar
     if (errors[name]) {
       setErrors(prev => {
         const newErrors = { ...prev };
@@ -72,13 +87,11 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
     }
   };
 
-  // Função de Validação
   const validate = () => {
     let valid = true;
     const newErrors = {};
 
     requiredFields.forEach(field => {
-      // Verifica se o campo está vazio ou é apenas espaço em branco
       if (!formData[field] || String(formData[field]).trim() === '') {
         newErrors[field] = 'Campo Obrigatório';
         valid = false;
@@ -89,24 +102,22 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
     return valid;
   };
 
-  // Função de submissão do formulário
   const handleSubmit = () => {
     if (validate()) {
-      // Supondo que a função onSave lida com a lógica de API/Estado
-      onSave(formData); 
+      // Item 9: Inclui a fotoUri nos dados devolvidos no submit[cite: 15]
+      const dadosParaSalvar = { ...formData, fotoUri };
+      
+      onSave(dadosParaSalvar); 
       Alert.alert(
         isEditing ? 'Sucesso' : 'Cadastro Concluído', 
         isEditing ? 'Dados do médico atualizados.' : 'Novo médico cadastrado com sucesso!'
       );
-      navigation.goBack();
+      if (navigation) navigation.goBack();
     } else {
       Alert.alert('Erro', 'Por favor, preencha todos os campos obrigatórios.');
     }
   };
-  
-  // =========================================================================
-  // SUB-COMPONENTE: INPUT COM VALIDAÇÃO
-  // =========================================================================
+
   const ValidatedInput = ({ label, name, ...props }) => (
     <View style={formStyles.inputGroup}>
       <Text style={formStyles.label}>{label}</Text>
@@ -126,9 +137,23 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
         
         <Text style={styles.title}>{isEditing ? 'Editar Perfil' : 'Novo Cadastro'}</Text>
 
-        {/* ====================================
-            1. PROFISSIONAL
-            ==================================== */}
+        {/* Item 9: Destaque da Foto de Perfil no topo do formulário[cite: 15] */}
+        <View style={styles.avatarContainer}>
+          {fotoUri ? (
+            <Image source={{ uri: fotoUri }} style={styles.avatar} />
+          ) : (
+            <View style={[styles.avatar, styles.avatarPlaceholder]}>
+              <Text style={styles.avatarText}>Sem Foto</Text>
+            </View>
+          )}
+          <TouchableOpacity style={styles.botaoFoto} onPress={escolherFoto}>
+            <Text style={styles.botaoFotoTexto}>
+              {fotoUri ? 'Alterar Foto' : 'Tirar Foto de Perfil'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* 1. PROFISSIONAL */}
         <Text style={styles.sectionHeader}>1. Profissional</Text>
         <ValidatedInput 
           label="Nome Completo" 
@@ -136,7 +161,6 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
           placeholder="Ex: Ana Maria da Silva" 
         />
         
-        {/* Campo Especialidade (Lista de Seleção) */}
         <View style={formStyles.inputGroup}>
           <Text style={formStyles.label}>Especialidade</Text>
           <View style={[formStyles.pickerWrapper, errors.especialidade && formStyles.inputError]}>
@@ -159,9 +183,7 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
           placeholder="Ex: 12345/MG" 
         />
 
-        {/* ====================================
-            2. CONTATOS
-            ==================================== */}
+        {/* 2. CONTATOS */}
         <Text style={styles.sectionHeader}>2. Contatos</Text>
         <ValidatedInput 
           label="Email" 
@@ -176,9 +198,7 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
           keyboardType="phone-pad"
         />
 
-        {/* ====================================
-            3. ENDEREÇO PROFISSIONAL
-            ==================================== */}
+        {/* 3. ENDEREÇO PROFISSIONAL */}
         <Text style={styles.sectionHeader}>3. Endereço Profissional</Text>
         <ValidatedInput 
           label="Logradouro" 
@@ -198,7 +218,6 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
             name="complemento" 
             placeholder="Apto/Sala (Opcional)"
             style={formStyles.inputHalf}
-            // Não é obrigatório (retirei do array requiredFields se fosse o caso)
           />
         </View>
         <ValidatedInput 
@@ -236,7 +255,7 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
         
         <TouchableOpacity
           style={[formStyles.button, formStyles.cancelButton]}
-          onPress={onCancel || (() => navigation.goBack())}
+          onPress={onCancel || (() => navigation && navigation.goBack())}
         >
           <Text style={formStyles.buttonText}>Cancelar</Text>
         </TouchableOpacity>
@@ -245,9 +264,6 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
   );
 };
 
-// =========================================================================
-// ESTILOS DO FORMULÁRIO
-// =========================================================================
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -255,21 +271,57 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
-    paddingBottom: 100, // Espaço para os botões fixos
+    paddingBottom: 100,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginBottom: 10,
     textAlign: 'center',
     color: '#333',
   },
+  
+  // Estilos da Foto de Perfil / Avatar
+  avatarContainer: {
+    alignItems: 'center',
+    marginVertical: 15,
+  },
+  avatar: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    marginBottom: 10,
+  },
+  avatarPlaceholder: {
+    backgroundColor: '#e1e8ee',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ccc',
+  },
+  avatarText: {
+    color: '#777',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  botaoFoto: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+  },
+  botaoFotoTexto: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+
   sectionHeader: {
     fontSize: 18,
     fontWeight: 'bold',
     marginTop: 20,
     marginBottom: 10,
-    color: '#007AFF', // Cor de destaque
+    color: '#007AFF',
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
     paddingBottom: 5,
@@ -321,18 +373,17 @@ const formStyles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 10, // Espaçamento entre os campos na linha
+    gap: 10,
   },
   inputHalf: {
-    flex: 1, // Ocupa metade do espaço
+    flex: 1,
   },
   inputQuarter: {
-    flex: 0.3, // Ocupa cerca de 30%
+    flex: 0.3,
   },
   inputThreeQuarter: {
-    flex: 0.7, // Ocupa o restante
+    flex: 0.7,
   },
-  // Estilo específico para o Picker
   pickerWrapper: {
     borderWidth: 1,
     borderColor: '#ccc',
@@ -340,15 +391,12 @@ const formStyles = StyleSheet.create({
     backgroundColor: '#f9f9f9',
     justifyContent: 'center',
     height: 45,
-    overflow: 'hidden', // Importante para o Android
+    overflow: 'hidden',
   },
   picker: {
-    // Para iOS, o Picker não precisa de height/width se o wrapper tiver
-    // Para Android, pode ser necessário ajustar se houver padding estranho
     height: Platform.OS === 'ios' ? undefined : 45,
     width: '100%',
   },
-  // Estilos dos Botões de Ação
   button: {
     flex: 1,
     padding: 15,
@@ -357,10 +405,10 @@ const formStyles = StyleSheet.create({
     marginHorizontal: 5,
   },
   saveButton: {
-    backgroundColor: '#007AFF', // Azul primário
+    backgroundColor: '#007AFF',
   },
   cancelButton: {
-    backgroundColor: '#6c757d', // Cinza
+    backgroundColor: '#6c757d',
   },
   buttonText: {
     color: '#fff',

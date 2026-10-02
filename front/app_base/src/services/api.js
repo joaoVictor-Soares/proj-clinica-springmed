@@ -1,7 +1,7 @@
 import { obterToken, limparSessao } from './sessao.js';
 
 // Se for testar no Expo Go no celular físico, troque localhost pelo IP da sua máquina
-const BASE_URL = 'http://192.168.1.5:3001';
+const BASE_URL = 'http://10.110.12.44:3001';
 
 export const requisicao = async (caminho, opcoes = {}) => {
   const token = await obterToken();
