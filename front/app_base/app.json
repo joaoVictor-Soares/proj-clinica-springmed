@@ -27,7 +27,13 @@
     },
     "plugins": [
       "expo-status-bar",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Permitir que o app use o Face ID para liberar seu acesso à clínica."
+        }
+      ]
     ]
   }
 }
