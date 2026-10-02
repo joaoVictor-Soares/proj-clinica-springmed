@@ -139,5 +139,11 @@
       "horaFim": "17:00"
     }
   ],
+      "consultas": [
+      { "id": "1", "pacienteId": "7", "medicoId": "1", "data": "2026-09-28", "hora": "09:00", "status": "realizada", "motivo": "Check-up cardiológico" },
+      { "id": "2", "pacienteId": "8", "medicoId": "3", "data": "2026-09-29", "hora": "14:30", "status": "cancelada", "motivo": "Avaliação de manchas na pele" },
+      { "id": "3", "pacienteId": "VLiU-P21n5c", "medicoId": "2", "data": "2026-10-02", "hora": "10:00", "status": "agendada", "motivo": "Consulta de rotina" },
+      { "id": "4", "pacienteId": "7", "medicoId": "5", "data": "2026-10-05", "hora": "08:30", "status": "agendada", "motivo": "Dores de cabeça frequentes" }
+    ],
   "$schema": "./node_modules/json-server/schema.json"
 }

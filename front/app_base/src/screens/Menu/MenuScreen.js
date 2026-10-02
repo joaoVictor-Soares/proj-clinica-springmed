@@ -69,7 +69,7 @@ const MenuScreen = ({ navigation }) => {
           <BotaoMenu 
             icone={IconeConsulta}
             titulo="Consultas" 
-            onPress={() => navigation.navigate('EmConstrucao')}
+            onPress={() => navigation.navigate('Consultas')}
           />
 
           <TouchableOpacity style={styles.botaoTrocarConta} onPress={handleNovoLogin}>
