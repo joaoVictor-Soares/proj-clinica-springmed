@@ -24,15 +24,27 @@ const MenuScreen = ({ navigation }) => {
     }
   }, [isFocused]);
 
+  const perfil = usuario?.perfil;
+  const ehPaciente = perfil === 'paciente';
+
   const handleNavegarPacientes = () => {
-    if (usuario?.perfil === 'medico') {
+    if (perfil === 'medico') {
       navigation.navigate('AcessoNegado');
     } else {
       navigation.navigate('Pacientes');
     }
   };
 
-  const handleNovoLogin = async () => {
+  // Bloquear: mantém a sessão no aparelho e volta para a biometria
+  const handleBloquear = () => {
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'LoginBiometrico' }],
+    });
+  };
+
+  // Sair: apaga a sessão e exige e-mail e senha de novo
+  const handleSair = async () => {
     await limparSessao();
     navigation.reset({
       index: 0,
@@ -54,25 +66,40 @@ const MenuScreen = ({ navigation }) => {
         <View style={styles.btns}>
           <Text style={styles.subtitulo}>Escolha qual seção deseja iniciar.</Text>
           
-          <BotaoMenu
-            icone={IconeMedic}
-            titulo="Médico(a)s" 
-            onPress={() => navigation.navigate('Medicos')}
-          />
-       
-          <BotaoMenu
-            icone={IconePaciente} 
-            titulo="Pacientes" 
-            onPress={handleNavegarPacientes}
-          />
+          {/* Paciente só vê Consultas (as dele) */}
+          {!ehPaciente && (
+            <BotaoMenu
+              icone={IconeMedic}
+              titulo="Médico(a)s" 
+              onPress={() => navigation.navigate('Medicos')}
+            />
+          )}
+
+          {!ehPaciente && (
+            <BotaoMenu
+              icone={IconePaciente} 
+              titulo="Pacientes" 
+              onPress={handleNavegarPacientes}
+            />
+          )}
       
           <BotaoMenu 
             icone={IconeConsulta}
-            titulo="Consultas" 
+            titulo={ehPaciente ? 'Minhas Consultas' : 'Consultas'}
             onPress={() => navigation.navigate('Consultas')}
           />
 
-          <TouchableOpacity style={styles.botaoTrocarConta} onPress={handleNovoLogin}>
+          {!ehPaciente && (
+            <TouchableOpacity style={styles.botaoSincronizar} onPress={() => navigation.navigate('SincronizarAgenda')}>
+              <Text style={styles.textoBotaoSincronizar}>Sincronizar agenda (conflitos)</Text>
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity style={styles.botaoBloquear} onPress={handleBloquear}>
+            <Text style={styles.textoBotaoBloquear}>Bloquear (voltar à biometria)</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.botaoTrocarConta} onPress={handleSair}>
             <Text style={styles.textoBotaoTrocar}>Trocar de Conta / Sair</Text>
           </TouchableOpacity>
         </View>
@@ -102,12 +129,33 @@ const styles = StyleSheet.create({
   btns: { 
     marginTop: 40,
   },
+  botaoSincronizar: {
+    backgroundColor: '#1F3B57',
+    padding: 14,
+    borderRadius: 6,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  textoBotaoSincronizar: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  botaoBloquear: {
+    borderWidth: 1,
+    borderColor: '#1F3B57',
+    padding: 14,
+    borderRadius: 6,
+    alignItems: 'center',
+    marginTop: 24,
+  },
+  textoBotaoBloquear: {
+    color: '#1F3B57',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
   botaoTrocarConta: {
     backgroundColor: '#a33',
     padding: 14,
     borderRadius: 6,
     alignItems: 'center',
-    marginTop: 24,
+    marginTop: 12,
     marginBottom: 20,
   },
   textoBotaoTrocar: {

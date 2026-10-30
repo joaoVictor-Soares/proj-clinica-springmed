@@ -19,8 +19,8 @@ import {
 
 const IconeLupa = require('../../../assets/lupa.png');
 const IconeSeta = require('../../../assets/seta.png');
+import { JSON_URL as BASE_URL } from '../../config';
 
-const BASE_URL = 'http://10.110.12.44:3000';
 
 if (Platform.OS === 'android') {
   if (UIManager.setLayoutAnimationEnabledExperimental) {

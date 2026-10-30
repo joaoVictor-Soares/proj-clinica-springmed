@@ -15,7 +15,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { consultarCep } from '../services/viacep'; 
 
-const BASE_URL = 'http://10.110.12.44:3000';
+import { JSON_URL as BASE_URL } from '../config';
 
 const initialPacienteState = {
   nome: '',

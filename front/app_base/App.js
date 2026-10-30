@@ -1,12 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-// Serviços de Sessão
-import { estaLogado } from './src/services/sessao';
-
-// Importação das Telas
 import LoginScreen from './src/screens/Login/LoginScreen';
 import AcessoNegadoScreen from './src/screens/AcessoNegado/AcessoNegadoScreen';
 import Splash from './src/screens/Splash/Splash';
@@ -17,99 +13,72 @@ import CadastroEdicaoMedicoScreen from './src/screens/Medico/CadastroEdicaoMedic
 import PacienteForm from './src/components/PacienteForm';
 import LoginBiometrico from './src/screens/Login/LoginBiometrico';
 import Consulta from './src/screens/Consulta/Consulta';
+import comPerfil from './src/components/RotaProtegida';
+// Aulas 8 e 10 ↓
+import AgendarConsulta from './src/screens/Consulta/AgendarConsulta';
+import SincronizarAgenda from './src/screens/Agenda/SincronizarAgenda';
+import { navigationRef, navegar } from './src/services/navegacao';
+import { configurarHandler, prepararCanal, registrarToqueNotificacao } from './src/services/lembretes';
 
-const Stack = createStackNavigator();
+configurarHandler(); // uma vez, no topo (Aula 8)
+
+const Stack = createNativeStackNavigator();
+
+const EQUIPE = ['recepcao', 'medico'];
+
+// Criadas fora do App para não remontar a cada render.
+// Paciente (perfil 'paciente') só passa em Menu e Consultas.
+const MedicoProtegido = comPerfil(Medico, EQUIPE);
+// Médico já era barrado em Pacientes no MenuScreen original; mantemos a regra.
+const PacientesProtegido = comPerfil(Paciente, ['recepcao']);
+const PacienteFormProtegido = comPerfil(PacienteForm, ['recepcao']);
+const MedicoFormProtegido = comPerfil(CadastroEdicaoMedicoScreen, EQUIPE);
+
+const SincronizarProtegida = comPerfil(SincronizarAgenda, EQUIPE);
+
+const EmConstrucao = () => (
+  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+    <Text style={{ fontSize: 24 }}>Em Construção!</Text>
+  </View>
+);
 
 function App() {
-  const [medicos, setMedicos] = useState([
-    {id:1, "nome":"João de Oliveira", "especialidade":"Cardiologista", "crm": "12345/MG", "email": "joao@clinica.com", "telefone": "(31) 98765-4321", "endereco": "Rua A, 100"},
-    {id:2, "nome":"Antônio de Oliveira", "especialidade":"Pediatra", "crm": "23456/MG", "email": "antonio@clinica.com", "telefone": "(31) 99876-5432", "endereco": "Av. B, 200"},
-    {id:3, "nome":"Maria da Silva", "especialidade":"Dermatologista", "crm": "34567/SP", "email": "maria@clinica.com", "telefone": "(11) 97654-3210", "endereco": "Rua C, 300"},
-    {id:4, "nome":"Beatriz Souza", "especialidade":"Ginecologista", "crm": "45678/RJ", "email": "beatriz@clinica.com", "telefone": "(21) 96543-2109", "endereco": "Av. D, 400"},
-    {id:5, "nome":"Carlos Santos", "especialidade":"Neurologista", "crm": "56789/BA", "email": "carlos@clinica.com", "telefone": "(71) 95432-1098", "endereco": "Praça E, 500"},
-  ]);
+  useEffect(() => { prepararCanal(); }, []);
 
-  const [verificandoSessao, setVerificandoSessao] = useState(true);
-  const [usuarioLogado, setUsuarioLogado] = useState(false);
-
-  // Verifica se há token salvo antes de carregar a interface inicial
-  useEffect(() => {
-    const checarSessao = async () => {
-      const logado = await estaLogado();
-      setUsuarioLogado(logado);
-      setVerificandoSessao(false);
-    };
-    checarSessao();
-  }, []);
-
-  const MedicoList = (props) => (
-    <Medico {...props} medicos={medicos} />
-  );
-
-  // Tela de carregamento enquanto valida a sessão
-  if (verificandoSessao) {
-    return (
-      <View style={styles.carregandoContainer}>
-        <ActivityIndicator size="large" color="#1F3B57" />
-      </View>
-    );
-  }
+  // Toque na notificação: Caminho A (listener) e B (app fechado). Registrado em onReady
+  // e removido ao desmontar.
+  const removerListener = useRef(null);
+  const aoPronto = () => {
+    removerListener.current = registrarToqueNotificacao((dados) =>
+      navegar(dados.tela || 'Consultas', { consultaId: dados.consultaId }));
+  };
+  useEffect(() => () => removerListener.current?.(), []);
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName={usuarioLogado ? 'LoginBiometrico' : 'Login'}>
-
-        {/* Com token guardado, o app abre aqui: a biometria destranca a sessão */}
-        <Stack.Screen 
-          name="LoginBiometrico" 
-          component={LoginBiometrico} 
-          options={{ headerShown: false }} 
-        />
-        {/* Rota de Login */}
-        <Stack.Screen 
-          name="Login" 
-          component={LoginScreen} 
-          options={{ headerShown: false }} 
-        />
+    <NavigationContainer ref={navigationRef} onReady={aoPronto}>
+      {/* O app sempre abre no LoginBiometrico; ele mesmo encaminha para
+          o Login por senha quando não há sessão no aparelho. */}
+      <Stack.Navigator initialRouteName="LoginBiometrico">
+        <Stack.Screen name="LoginBiometrico" component={LoginBiometrico} options={{ headerShown: false }} />
+        <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
 
         <Stack.Screen name="Splash" component={Splash} options={{ headerShown: false }} />
         <Stack.Screen name="Menu" component={MenuScreen} options={{ title: 'Menu Principal' }} />
-        
-        {/* Rotas protegidas da aplicação */}
-        <Stack.Screen name="Medicos" component={MedicoList} options={{ title: 'Médico(a)s' }} />
-        <Stack.Screen name="Pacientes" component={Paciente} options={{ title: 'Pacientes' }} />
+
+        <Stack.Screen name="Medicos" component={MedicoProtegido} options={{ title: 'Médico(a)s' }} />
+        <Stack.Screen name="Pacientes" component={PacientesProtegido} options={{ title: 'Pacientes' }} />
         <Stack.Screen name="Consultas" component={Consulta} options={{ title: 'Consultas' }} />
-        <Stack.Screen 
-          name="PacienteForm" 
-          component={PacienteForm} 
-          options={{ title: 'Formulário do Paciente' }}
-        />
-        <Stack.Screen name="MedicoForm" component={CadastroEdicaoMedicoScreen} options={{ title: 'Gerenciar Médico' }} />
+        <Stack.Screen name="PacienteForm" component={PacienteFormProtegido} options={{ title: 'Formulário do Paciente' }} />
+        <Stack.Screen name="MedicoForm" component={MedicoFormProtegido} options={{ title: 'Gerenciar Médico' }} />
 
-        {/* Rota de Acesso Recusado / Negado */}
-        <Stack.Screen 
-          name="AcessoNegado" 
-          component={AcessoNegadoScreen} 
-          options={{ title: 'Acesso Negado' }} 
-        />
+        <Stack.Screen name="AgendarConsulta" component={AgendarConsulta} options={{ title: 'Agendar consulta' }} />
+        <Stack.Screen name="SincronizarAgenda" component={SincronizarProtegida} options={{ title: 'Sincronizar agenda' }} />
 
-        <Stack.Screen name="EmConstrucao" component={() => (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                <Text style={{ fontSize: 24 }}>Em Construção!</Text>
-            </View>
-        )} options={{ title: 'Em Construção' }} />
+        <Stack.Screen name="AcessoNegado" component={AcessoNegadoScreen} options={{ title: 'Acesso Negado' }} />
+        <Stack.Screen name="EmConstrucao" component={EmConstrucao} options={{ title: 'Em Construção' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  carregandoContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-});
 
 export default App;

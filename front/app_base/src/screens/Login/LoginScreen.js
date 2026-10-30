@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { salvarSessao } from '../../services/sessao';
 import { post } from '../../services/api';
+import { entrarNoApp } from '../../services/navegacao';
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('recepcao@clinica.com');
@@ -22,10 +23,7 @@ export default function LoginScreen({ navigation }) {
       await salvarSessao(dados.token, dados.usuario);
       setSenha('');
       
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Menu' }],
-      });
+      entrarNoApp(navigation);
     } catch (e) {
       if (e.message.includes('401')) {
         setErro('E-mail ou senha inválidos.');

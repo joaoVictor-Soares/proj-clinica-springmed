@@ -17,7 +17,7 @@ import {
   Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-const BASE_URL = 'http://10.110.12.44:3000';
+import { JSON_URL as BASE_URL } from '../../config';
 
 // Ícones (você precisará ter esses arquivos PNG ou usar uma biblioteca de ícones)
 // Assumindo que você tem um ícone de lupa e um triângulo/seta
