@@ -13,38 +13,28 @@ import com.springmed.springmed.repository.MedicoRepository;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 
-import java.util.List;
-
-
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.data.autoconfigure.web.DataWebProperties.Pageable;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
 
-
-
-@RestController 
+@RestController
 @RequestMapping("medicos")
 public class MedicoController {
 
-    @Autowired 
-    private  MedicoRepository medicoRepository;
-    
+    @Autowired
+    private MedicoRepository medicoRepository;
+
     @PostMapping
-    @Transactional 
-    public void cadastrar(@RequestBody DadosCadastroMedico dados){
+    @Transactional
+    public void cadastrar(@RequestBody @Valid DadosCadastroMedico dados){
         medicoRepository.save(new Medico(dados));
     }
-
-    // @GetMapping
-    // public List<DadosListagemMedico> listar() {
-    //     return medicoRepository.findAll().stream().map(DadosListagemMedico::new).toList();
-    // }
 
     @GetMapping
     public Page<DadosListagemMedico> listar(Pageable paginacao){
@@ -53,9 +43,16 @@ public class MedicoController {
     }
 
     @PutMapping
-    @Transactional 
+    @Transactional
     public void atualizar(@RequestBody @Valid DadosAtualizacaoMedico dados) {
         var medico = medicoRepository.getReferenceById(dados.id());
         medico.atualizarInformacoes(dados);
+    }
+
+    @DeleteMapping("/{id}")
+    @Transactional
+    public void excluir(@PathVariable Long id) {
+        var medico = medicoRepository.getReferenceById(id);
+        medico.excluir();
     }
 }

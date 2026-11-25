@@ -1,15 +1,17 @@
 package com.springmed.springmed.model.dto;
 
-import com.springmed.springmed.model.dto.DadosEndereco;;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 
 public record DadosCadastroPaciente(
-    String nome, 
-    String email,
-    String cpf,
-    String telefone,
-    DadosEndereco endereco
+    @NotBlank String nome,
+    @NotBlank @Email String email,
+    @NotBlank @Pattern(regexp = "\\d{11}") String cpf,
+    @NotBlank String telefone,
+    @NotNull @Valid DadosEndereco endereco
 ) {
 
-
-    
 }
