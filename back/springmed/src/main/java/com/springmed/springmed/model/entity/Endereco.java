@@ -60,7 +60,7 @@ public class Endereco {
             if(dados.uf().isBlank())
                 throw new IllegalArgumentException("UF não pode estar em branco");
             else
-                this.cep = dados.cep();
+                this.uf = dados.uf();
         }
 
         if(dados.numero() != null){

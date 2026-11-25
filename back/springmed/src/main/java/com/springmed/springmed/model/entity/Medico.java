@@ -48,7 +48,8 @@ public class Medico {
         this.telefone = dados.telefone();
         this.especialidade = dados.especialidade();
         this.endereco = new Endereco(dados.endereco());
-    }   
+        this.ativo = true;
+    }
 
     public void atualizarInformacoes(DadosAtualizacaoMedico dados){
         if(dados.nome() != null){
